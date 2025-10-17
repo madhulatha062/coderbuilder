@@ -1,0 +1,66 @@
+import streamlit as st
+from backend import process_pdfs, answer_question
+
+# ---------------------------------------------
+# Streamlit UI Configuration
+# ---------------------------------------------
+st.set_page_config(
+    page_title="StudyMate - AI Academic Assistant",
+    page_icon="🎓",
+    layout="wide",
+)
+
+st.title("🎓 StudyMate")
+st.caption("Ask questions directly from your study materials — powered by AI.")
+
+# Sidebar for uploads
+with st.sidebar:
+    st.header("📚 Upload PDFs")
+    uploaded_files = st.file_uploader(
+        "Upload one or more PDF files", type=["pdf"], accept_multiple_files=True
+    )
+    st.markdown("---")
+    top_k = st.slider("🔍 Retrieve top relevant chunks", 1, 10, 3)
+
+# Session state
+if "pdf_processed" not in st.session_state:
+    st.session_state.pdf_processed = False
+if "context_data" not in st.session_state:
+    st.session_state.context_data = None
+
+# ---------------------------------------------
+# PDF Upload and Processing
+# ---------------------------------------------
+if uploaded_files and not st.session_state.pdf_processed:
+    with st.spinner("⏳ Processing uploaded PDFs..."):
+        context_data = process_pdfs(uploaded_files)
+        st.session_state.context_data = context_data
+        st.session_state.pdf_processed = True
+    st.success("✅ PDFs successfully processed! You can now ask questions.")
+
+# ---------------------------------------------
+# Question Answering
+# ---------------------------------------------
+if st.session_state.pdf_processed:
+    st.markdown("### 💬 Ask a Question")
+    query = st.text_input("Type your academic question:")
+
+    if query:
+        with st.spinner("🤔 Thinking..."):
+            answer, context = answer_question(
+                query, st.session_state.context_data, top_k=top_k
+            )
+
+        # Display answer
+        st.markdown("### 🧠 StudyMate’s Answer")
+        st.write(answer)
+
+        with st.expander("📖 View Referenced Context"):
+            st.write(context)
+else:
+    st.info("📂 Please upload your study PDFs to begin.")
+
+st.markdown("---")
+st.caption("Made with ❤️ by StudyMate — Learn smarter, not harder.")
+
+
